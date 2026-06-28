@@ -114,6 +114,12 @@ cert:
     security unlock-keychain -p "{{cert_password}}" "{{signing_keychain}}"
     security import "{{cert_p12}}" -k "{{signing_keychain}}" -P "{{cert_password}}" -T /usr/bin/codesign -A >&2
     security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "{{cert_password}}" "{{signing_keychain}}" >/dev/null
+    # Add the keychain to the search list so codesign can find the identity
+    # (codesign honors --keychain locally, but on CI it searches this list).
+    existing=$(security list-keychains -d user | sed -e 's/^[[:space:]]*"//' -e 's/"[[:space:]]*$//')
+    if ! printf '%s\n' "$existing" | grep -qxF "{{signing_keychain}}"; then
+        security list-keychains -d user -s "{{signing_keychain}}" $existing
+    fi
     echo "==> Identity ready in {{signing_keychain}}" >&2
 
 # Print the certificate as base64 to paste into the GitHub secret
