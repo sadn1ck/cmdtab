@@ -36,6 +36,7 @@ final class SwitcherState: ObservableObject {
 final class SwitcherWindowController: NSWindowController {
     private let enumerator = WindowEnumerator()
     private let state = SwitcherState()
+    private var activationObserver: NSObjectProtocol?
     private let panelWidth: CGFloat = 600
     private let transparentInset: CGFloat = 10
     private let panelRadius: CGFloat = 14
@@ -105,11 +106,25 @@ final class SwitcherWindowController: NSWindowController {
             hostingView.topAnchor.constraint(equalTo: glassView.topAnchor),
             hostingView.bottomAnchor.constraint(equalTo: glassView.bottomAnchor)
         ])
+
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            DispatchQueue.main.async { self?.dismiss() }
+        }
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
+    }
+
+    deinit {
+        if let activationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+        }
     }
 
     func show() {
@@ -139,17 +154,21 @@ final class SwitcherWindowController: NSWindowController {
     }
 
     func cancel() {
-        close()
+        dismiss()
     }
 
     func commitSelection() {
-        guard let selectedWindow = state.selectedWindow else {
-            close()
-            return
+        let selectedWindow = state.selectedWindow
+        dismiss()
+        if let selectedWindow {
+            enumerator.activate(selectedWindow)
         }
+    }
 
+    private func dismiss() {
+        guard window?.isVisible == true else { return }
         close()
-        enumerator.activate(selectedWindow)
+        state.replaceWindows([])
     }
 
     private func resizeForContent() {
