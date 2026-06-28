@@ -55,17 +55,9 @@ final class SettingsWindowController: NSWindowController {
         super.init(window: window)
 
         let hostingView = NSHostingView(rootView: SettingsView(settings: settings))
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
         hostingView.wantsLayer = true
         hostingView.layer?.backgroundColor = NSColor.clear.cgColor
-        contentView.addSubview(hostingView)
-
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
-        ])
+        contentView.pin(hostingView)
     }
 
     @available(*, unavailable)

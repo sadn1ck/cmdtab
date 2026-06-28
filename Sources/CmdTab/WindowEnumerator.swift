@@ -82,32 +82,30 @@ final class WindowEnumerator {
         return true
     }
 
-    private func stringAttribute(_ attribute: String, _ element: AXUIElement) -> String {
+    private func attributeValue(_ attribute: String, _ element: AXUIElement) -> CFTypeRef? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else {
-            return ""
+            return nil
         }
-        return value as? String ?? ""
+        return value
+    }
+
+    private func stringAttribute(_ attribute: String, _ element: AXUIElement) -> String {
+        attributeValue(attribute, element) as? String ?? ""
     }
 
     private func boolAttribute(_ attribute: String, _ element: AXUIElement) -> Bool {
-        var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else {
-            return false
-        }
-        return (value as? Bool) == true
+        (attributeValue(attribute, element) as? Bool) == true
     }
 
     private func sizeAttribute(_ attribute: String, _ element: AXUIElement) -> CGSize? {
-        var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
-              let axValue = value,
-              CFGetTypeID(axValue) == AXValueGetTypeID() else {
+        guard let value = attributeValue(attribute, element),
+              CFGetTypeID(value) == AXValueGetTypeID() else {
             return nil
         }
 
         var size = CGSize.zero
-        guard AXValueGetValue((axValue as! AXValue), .cgSize, &size) else {
+        guard AXValueGetValue((value as! AXValue), .cgSize, &size) else {
             return nil
         }
         return size

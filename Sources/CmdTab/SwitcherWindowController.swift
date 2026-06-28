@@ -87,25 +87,9 @@ final class SwitcherWindowController: NSWindowController {
         super.init(window: window)
 
         let hostingView = ClearHostingView(rootView: SwitcherView(state: state))
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        rootView.addSubview(shadowView)
-        shadowView.addSubview(glassView)
-        glassView.addSubview(hostingView)
-
-        NSLayoutConstraint.activate([
-            shadowView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: transparentInset),
-            shadowView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor, constant: -transparentInset),
-            shadowView.topAnchor.constraint(equalTo: rootView.topAnchor, constant: transparentInset),
-            shadowView.bottomAnchor.constraint(equalTo: rootView.bottomAnchor, constant: -transparentInset),
-            glassView.leadingAnchor.constraint(equalTo: shadowView.leadingAnchor),
-            glassView.trailingAnchor.constraint(equalTo: shadowView.trailingAnchor),
-            glassView.topAnchor.constraint(equalTo: shadowView.topAnchor),
-            glassView.bottomAnchor.constraint(equalTo: shadowView.bottomAnchor),
-            hostingView.leadingAnchor.constraint(equalTo: glassView.leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: glassView.trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: glassView.topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: glassView.bottomAnchor)
-        ])
+        rootView.pin(shadowView, inset: transparentInset)
+        shadowView.pin(glassView)
+        glassView.pin(hostingView)
 
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
