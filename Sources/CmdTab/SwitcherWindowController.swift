@@ -5,6 +5,7 @@ import SwiftUI
 final class SwitcherState: ObservableObject {
     @Published var windows: [WindowInfo] = []
     @Published var selectedIndex = -1
+    private(set) var revision = 0
 
     var selectedWindow: WindowInfo? {
         windows.indices.contains(selectedIndex) ? windows[selectedIndex] : nil
@@ -14,6 +15,7 @@ final class SwitcherState: ObservableObject {
         withoutAnimation {
             windows = newWindows
             selectedIndex = newWindows.count > 1 ? 1 : (newWindows.isEmpty ? -1 : 0)
+            revision &+= 1
         }
     }
 
@@ -207,7 +209,7 @@ private struct SwitcherView: View {
         .padding(8)
         .background(.clear)
         .animation(nil, value: state.selectedIndex)
-        .animation(nil, value: state.windows.map(\.id))
+        .animation(nil, value: state.revision)
     }
 }
 

@@ -3,12 +3,17 @@ import ApplicationServices
 import CoreGraphics
 
 final class WindowEnumerator {
+    // Cap on each synchronous AX IPC call. Without it, a hung target app can
+    // block the main thread (and the global event tap) until it responds.
+    private let messagingTimeout: Float = 0.2
+
     func visibleWindows() -> [WindowInfo] {
         orderedProcessIDs().flatMap(windows)
     }
 
     func activate(_ window: WindowInfo) {
         let app = AXUIElementCreateApplication(window.processID)
+        AXUIElementSetMessagingTimeout(app, messagingTimeout)
         AXUIElementSetAttributeValue(app, kAXFocusedWindowAttribute as CFString, window.axWindow)
         AXUIElementSetAttributeValue(app, kAXMainWindowAttribute as CFString, window.axWindow)
         AXUIElementPerformAction(window.axWindow, kAXRaiseAction as CFString)
@@ -49,6 +54,7 @@ final class WindowEnumerator {
         }
 
         let axApp = AXUIElementCreateApplication(processID)
+        AXUIElementSetMessagingTimeout(axApp, messagingTimeout)
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &value) == .success,
               let axWindows = value as? [AXUIElement] else {
@@ -56,6 +62,7 @@ final class WindowEnumerator {
         }
 
         return axWindows.enumerated().compactMap { index, axWindow in
+            AXUIElementSetMessagingTimeout(axWindow, messagingTimeout)
             guard isSwitchable(axWindow) else { return nil }
 
             let title = stringAttribute(kAXTitleAttribute, axWindow)
