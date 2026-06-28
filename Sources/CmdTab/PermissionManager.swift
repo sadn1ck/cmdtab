@@ -10,13 +10,8 @@ final class PermissionManager {
         AXIsProcessTrusted()
     }
 
-    var canListenToInput: Bool {
-        CGPreflightListenEventAccess()
-    }
-
     func requestStartupPermissions() {
         requestAccessibilityIfNeeded()
-        requestInputMonitoringIfNeeded()
     }
 
     func requestAccessibilityIfNeeded() {
@@ -27,17 +22,8 @@ final class PermissionManager {
         AXIsProcessTrustedWithOptions(options)
     }
 
-    func requestInputMonitoringIfNeeded() {
-        guard !canListenToInput else { return }
-        CGRequestListenEventAccess()
-    }
-
     func openAccessibilitySettings() {
         openPrivacySettingsPane("Privacy_Accessibility")
-    }
-
-    func openInputMonitoringSettings() {
-        openPrivacySettingsPane("Privacy_ListenEvent")
     }
 
     private func openPrivacySettingsPane(_ pane: String) {

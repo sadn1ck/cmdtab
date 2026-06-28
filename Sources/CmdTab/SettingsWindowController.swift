@@ -67,7 +67,6 @@ private struct SettingsView: View {
 
     @State private var selection: SettingsTab = .config
     @State private var accessibilityTrusted = PermissionManager.shared.isAccessibilityTrusted
-    @State private var inputTrusted = PermissionManager.shared.canListenToInput
 
     var body: some View {
         HStack(spacing: 0) {
@@ -90,7 +89,6 @@ private struct SettingsView: View {
             ConfigPane(
                 shortcut: settings.displayString,
                 accessibilityTrusted: accessibilityTrusted,
-                inputTrusted: inputTrusted,
                 refreshPermissions: refreshPermissions
             )
         case .about:
@@ -100,7 +98,6 @@ private struct SettingsView: View {
 
     private func refreshPermissions() {
         accessibilityTrusted = PermissionManager.shared.isAccessibilityTrusted
-        inputTrusted = PermissionManager.shared.canListenToInput
     }
 }
 
@@ -156,7 +153,6 @@ private struct SidebarItem: View {
 private struct ConfigPane: View {
     let shortcut: String
     let accessibilityTrusted: Bool
-    let inputTrusted: Bool
     let refreshPermissions: () -> Void
 
     var body: some View {
@@ -178,10 +174,6 @@ private struct ConfigPane: View {
             SettingsCard {
                 PermissionRow(title: "Accessibility", isGranted: accessibilityTrusted) {
                     PermissionManager.shared.openAccessibilitySettings()
-                }
-                Divider()
-                PermissionRow(title: "Input Monitoring", isGranted: inputTrusted) {
-                    PermissionManager.shared.openInputMonitoringSettings()
                 }
             }
 

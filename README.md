@@ -32,7 +32,6 @@ The built app bundle is written to:
 CmdTab asks for the permissions an alt-tab replacement typically needs:
 
 - **Accessibility**: required to inspect, focus, and raise windows from other apps.
-- **Input Monitoring**: required to catch the global shortcut while other apps are active.
 
 macOS privacy permissions are tied to the app bundle identifier and signed bundle. This project uses:
 

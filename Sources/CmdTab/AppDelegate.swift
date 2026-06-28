@@ -26,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switcherWindowController?.show()
     }
 
-    @objc private func checkPermissions() {
+    @objc private func showStatus() {
         PermissionManager.shared.requestStartupPermissions()
         reportShortcutMonitorStatus()
         showDiagnostics()
@@ -34,10 +34,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openAccessibilitySettings() {
         PermissionManager.shared.openAccessibilitySettings()
-    }
-
-    @objc private func openInputMonitoringSettings() {
-        PermissionManager.shared.openInputMonitoringSettings()
     }
 
     @objc private func openSettings() {
@@ -59,11 +55,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Show CmdTab", action: #selector(showSwitcher), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Settings", action: #selector(openSettings), keyEquivalent: ","))
-        menu.addItem(NSMenuItem(title: "Check Permissions", action: #selector(checkPermissions), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Show Diagnostics", action: #selector(showDiagnostics), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Status", action: #selector(showStatus), keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Open Accessibility Settings", action: #selector(openAccessibilitySettings), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Open Input Monitoring Settings", action: #selector(openInputMonitoringSettings), keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
 
@@ -100,15 +94,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let alert = NSAlert()
         alert.messageText = "CmdTab cannot see global keystrokes"
-        alert.informativeText = "Grant Accessibility and Input Monitoring permissions to CmdTab, then quit and reopen it. Without those permissions macOS will not deliver Cmd-Tab from other apps."
+        alert.informativeText = "Grant Accessibility permission to CmdTab, then quit and reopen it if macOS does not apply the permission immediately."
         alert.addButton(withTitle: "Open Accessibility Settings")
-        alert.addButton(withTitle: "Open Input Monitoring Settings")
         alert.addButton(withTitle: "Cancel")
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
             PermissionManager.shared.openAccessibilitySettings()
-        } else if response == .alertSecondButtonReturn {
-            PermissionManager.shared.openInputMonitoringSettings()
         }
     }
 
@@ -117,7 +108,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = "CmdTab diagnostics"
         alert.informativeText = """
         Accessibility trusted: \(PermissionManager.shared.isAccessibilityTrusted)
-        Input monitoring trusted: \(PermissionManager.shared.canListenToInput)
         Event tap running: \(shortcutMonitor?.isRunning == true)
         Events seen: \(shortcutMonitor?.eventCount ?? 0)
         Shortcut: \(settings.displayString)

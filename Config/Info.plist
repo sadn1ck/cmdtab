@@ -26,8 +26,6 @@
 	<string>CmdTab may need to communicate with other apps to activate selected windows.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026</string>
-	<key>NSInputMonitoringUsageDescription</key>
-	<string>CmdTab needs to listen for the configured global shortcut while other apps are active.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>
