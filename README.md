@@ -4,7 +4,7 @@ A minimal native macOS/AppKit alt-tab-style switcher.
 
 Current scope:
 
-- global shortcut, defaulting to `⌘⇥`
+- global shortcut, fixed at `⌘⇥`
 - visible non-hidden/non-minimized window list
 - fullscreen windows excluded when Accessibility can inspect them
 - icon plus `{window_title} / {application_name}` rows
@@ -13,7 +13,6 @@ Current scope:
 - releasing the shortcut modifier activates the selected window
 - `Esc` cancels and keeps the current window
 - `Return` activates the selected window
-- settings for shortcut
 
 ## Build and run
 

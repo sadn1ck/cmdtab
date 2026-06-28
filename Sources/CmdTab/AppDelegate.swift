@@ -28,8 +28,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showStatus() {
         PermissionManager.shared.requestStartupPermissions()
-        reportShortcutMonitorStatus()
-        showDiagnostics()
+        if shortcutMonitor?.isRunning == true {
+            showDiagnostics()
+        } else {
+            reportShortcutMonitorStatus()
+        }
     }
 
     @objc private func openAccessibilitySettings() {

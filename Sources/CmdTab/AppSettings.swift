@@ -1,24 +1,8 @@
 import AppKit
 
 struct AppSettings {
-    private enum Key {
-        static let keyCode = "keyCode"
-        static let modifierFlags = "modifierFlags"
-    }
-
-    var keyCode: CGKeyCode {
-        didSet { UserDefaults.standard.set(Int(keyCode), forKey: Key.keyCode) }
-    }
-
-    var modifierFlags: CGEventFlags {
-        didSet { UserDefaults.standard.set(modifierFlags.rawValue, forKey: Key.modifierFlags) }
-    }
-
-    init() {
-        let defaults = UserDefaults.standard
-        keyCode = defaults.object(forKey: Key.keyCode).map { _ in CGKeyCode(defaults.integer(forKey: Key.keyCode)) } ?? 48
-        modifierFlags = defaults.object(forKey: Key.modifierFlags).map { _ in CGEventFlags(rawValue: UInt64(defaults.integer(forKey: Key.modifierFlags))) } ?? .maskCommand
-    }
+    let keyCode: CGKeyCode = 48
+    let modifierFlags: CGEventFlags = .maskCommand
 
     var displayString: String {
         "\(modifierDisplayString)\(keyDisplayString(for: keyCode))"
