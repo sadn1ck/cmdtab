@@ -1,0 +1,57 @@
+name: Build CmdTab
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    env:
+      CONFIGURATION: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decode signing certificate
+        env:
+          CERT_B64: ${{ secrets.SIGNING_CERTIFICATE_P12 }}
+        run: |
+          if [ -z "$CERT_B64" ]; then
+            echo "::error::SIGNING_CERTIFICATE_P12 secret is not set. Run 'just export-cert' locally and add it as a repo secret." >&2
+            exit 1
+          fi
+          mkdir -p .secrets
+          printf '%s' "$CERT_B64" | base64 --decode > .secrets/cmdtab-codesign.p12
+
+      - name: Install just
+        run: brew install just
+
+      - name: Build, sign and package
+        env:
+          CERT_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD || 'cmdtab' }}
+        run: just dist
+
+      # Everything below only runs for release bumps (commit message contains
+      # `#release`, created by `just release <level>`).
+      - name: Upload artifact
+        if: contains(github.event.head_commit.message, '#release')
+        uses: actions/upload-artifact@v4
+        with:
+          name: CmdTab
+          path: .build/release/CmdTab.zip
+          if-no-files-found: error
+
+      - name: Publish release
+        if: contains(github.event.head_commit.message, '#release')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Config/Info.plist)
+          gh release create "v$v" .build/release/CmdTab.zip \
+            --title "CmdTab v$v" \
+            --target "$GITHUB_SHA" \
+            --generate-notes
