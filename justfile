@@ -1,7 +1,7 @@
 set dotenv-load := true
 
 app_name := "CmdTab"
-bundle_id := "dev.local.cmdtab"
+bundle_id := "com.sadn1ck.apps.cmdtab"
 configuration := env_var_or_default("CONFIGURATION", "debug")
 macos_deployment_target := "14.0"
 swift_opt := if configuration == "release" { "-O" } else { "-Onone" }
@@ -15,7 +15,7 @@ cert_p12 := env_var_or_default("CERT_P12", ".secrets/cmdtab-codesign.p12")
 cert_password := env_var_or_default("CERT_PASSWORD", "cmdtab")
 
 # Internal constants.
-sign_identity := "CmdTab Certificate"
+sign_identity := "CmdTab"
 signing_keychain := env_var("HOME") / "Library/Keychains/cmdtab-codesign.keychain-db"
 
 build_dir := ".build" / configuration
@@ -31,6 +31,8 @@ default:
 
 # Build and sign the .app bundle.
 build: cert
+    #!/usr/bin/env bash
+    set -euo pipefail
     mkdir -p "{{macos_dir}}" "{{resources_dir}}"
     cp Config/Info.plist "{{contents_dir}}/Info.plist"
     /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier {{bundle_id}}" "{{contents_dir}}/Info.plist" >/dev/null
@@ -41,11 +43,16 @@ build: cert
         -framework AppKit \
         -framework ApplicationServices \
         -framework CoreGraphics \
+        -framework Security \
         -framework SwiftUI \
         -o "{{executable}}" \
         $(find Sources/{{app_name}} -name '*.swift' | sort)
     security unlock-keychain -p "{{cert_password}}" "{{signing_keychain}}"
-    codesign --force --sign "{{sign_identity}}" --keychain "{{signing_keychain}}" --entitlements Config/{{app_name}}.entitlements "{{app_dir}}"
+    # Sign with whatever identity is in the dedicated keychain (by hash), so a
+    # cert rename or a slightly stale secret never breaks signing by name.
+    identity=$(security find-identity -p codesigning "{{signing_keychain}}" | awk '/"/{print $2; exit}')
+    if [ -z "$identity" ]; then echo "==> No code-signing identity in {{signing_keychain}}" >&2; exit 1; fi
+    codesign --force --sign "$identity" --keychain "{{signing_keychain}}" --entitlements "Config/{{app_name}}.entitlements" "{{app_dir}}"
 
 # Build + sign + zip into a self-contained artifact (used by CI and releases).
 dist: build

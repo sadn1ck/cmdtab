@@ -36,7 +36,7 @@ CmdTab asks for the permissions an alt-tab replacement typically needs:
 macOS privacy permissions are tied to the app bundle identifier and signed bundle. This project uses:
 
 ```text
-dev.local.cmdtab
+com.sadn1ck.apps.cmdtab
 ```
 
 If permission prompts get stale while iterating, reset them with:

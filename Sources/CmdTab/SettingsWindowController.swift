@@ -1,5 +1,31 @@
 import AppKit
+import Security
 import SwiftUI
+
+enum AppInfo {
+    static var version: String {
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+        if let build, build != short { return "\(short) (\(build))" }
+        return short
+    }
+
+    static var signingAuthority: String {
+        var staticCode: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(Bundle.main.bundleURL as CFURL, [], &staticCode) == errSecSuccess,
+              let code = staticCode else { return "Unknown" }
+        var info: CFDictionary?
+        guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
+              let dict = info as? [String: Any] else { return "Unsigned" }
+        if let certs = dict[kSecCodeInfoCertificates as String] as? [SecCertificate], let leaf = certs.first {
+            var commonName: CFString?
+            if SecCertificateCopyCommonName(leaf, &commonName) == errSecSuccess, let name = commonName as String? {
+                return name
+            }
+        }
+        return "Ad-hoc"
+    }
+}
 
 @MainActor
 final class SettingsWindowController: NSWindowController {
@@ -189,11 +215,11 @@ private struct AboutPane: View {
             PaneHeader(icon: "rectangle.2.swap", title: "CmdTab", subtitle: "A fast native window switcher for macOS.")
 
             SettingsCard {
-                InfoRow(icon: "app", title: "Version", value: "0.1.0")
+                InfoRow(icon: "app", title: "Version", value: AppInfo.version)
                 Divider()
-                InfoRow(icon: "number", title: "Bundle ID", value: Bundle.main.bundleIdentifier ?? "dev.local.cmdtab")
+                InfoRow(icon: "number", title: "Bundle ID", value: Bundle.main.bundleIdentifier ?? "com.sadn1ck.apps.cmdtab")
                 Divider()
-                InfoRow(icon: "lock.shield", title: "Signing", value: "Local Development")
+                InfoRow(icon: "lock.shield", title: "Signing", value: AppInfo.signingAuthority)
             }
 
             SettingsCard {
