@@ -1,8 +1,14 @@
 import AppKit
 
 struct AppSettings {
+    static let liveSwitchDefaultsKey = "liveSwitchEnabled"
+
     let keyCode: CGKeyCode = 48
     let modifierFlags: CGEventFlags = .maskCommand
+
+    var isLiveSwitchEnabled: Bool {
+        UserDefaults.standard.bool(forKey: Self.liveSwitchDefaultsKey)
+    }
 
     var displayString: String {
         "\(modifierDisplayString)\(keyDisplayString(for: keyCode))"

@@ -173,6 +173,8 @@ private struct ConfigPane: View {
     let accessibilityTrusted: Bool
     let refreshPermissions: () -> Void
 
+    @AppStorage(AppSettings.liveSwitchDefaultsKey) private var liveSwitch = false
+
     var body: some View {
         SettingsPane {
             PaneHeader(icon: "command", title: "Config", subtitle: "Switcher behavior and required permissions.")
@@ -187,6 +189,15 @@ private struct ConfigPane: View {
                 InfoRow(icon: "return", title: "Commit", value: "Release Cmd")
                 Divider()
                 InfoRow(icon: "escape", title: "Cancel", value: "Esc")
+            }
+
+            SettingsCard {
+                ToggleRow(
+                    icon: "eye",
+                    title: "Live preview switching",
+                    subtitle: "Switch to the highlighted window on every Cmd-Tab",
+                    isOn: $liveSwitch
+                )
             }
 
             SettingsCard {
@@ -296,6 +307,35 @@ private struct InfoRow: View {
         .font(.system(size: 13, weight: .regular, design: .rounded))
         .padding(.horizontal, 14)
         .frame(height: 32)
+    }
+}
+
+private struct ToggleRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .frame(width: 18)
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                Text(subtitle)
+                    .font(.system(size: 11, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.small)
+        }
+        .font(.system(size: 13, weight: .regular, design: .rounded))
+        .padding(.horizontal, 14)
+        .frame(height: 42)
     }
 }
 

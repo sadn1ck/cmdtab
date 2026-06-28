@@ -38,6 +38,8 @@ final class SwitcherState: ObservableObject {
 final class SwitcherWindowController: NSWindowController {
     private let enumerator = WindowEnumerator()
     private let state = SwitcherState()
+    private let settings = AppSettings()
+    private var isLivePreviewing = false
     private var activationObserver: NSObjectProtocol?
     private let panelWidth: CGFloat = 600
     private let transparentInset: CGFloat = 10
@@ -98,7 +100,15 @@ final class SwitcherWindowController: NSWindowController {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            DispatchQueue.main.async { self?.dismiss() }
+            // TODO: In live mode this suppresses dismiss for ALL activations, so
+            // an external app activating itself (e.g. user clicks another window)
+            // won't auto-dismiss the panel. Fix: track the pid from previewSelection
+            // and only skip dismiss when the activated app (note.userInfo's
+            // NSWorkspace.applicationUserInfoKey) matches it; reset the pid in dismiss().
+            DispatchQueue.main.async {
+                guard let self, !self.isLivePreviewing else { return }
+                self.dismiss()
+            }
         }
     }
 
@@ -117,12 +127,16 @@ final class SwitcherWindowController: NSWindowController {
         state.replaceWindows(enumerator.visibleWindows())
         resizeForContent()
         centerOnActiveScreen()
+        isLivePreviewing = settings.isLiveSwitchEnabled
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0
             context.allowsImplicitAnimation = false
             window?.orderFrontRegardless()
         }
         window?.displayIfNeeded()
+        if isLivePreviewing {
+            previewSelection()
+        }
     }
 
     func cycleSelection(_ direction: ShortcutDirection) {
@@ -137,6 +151,10 @@ final class SwitcherWindowController: NSWindowController {
         case .backward:
             state.cycleBackward()
         }
+
+        if isLivePreviewing {
+            previewSelection()
+        }
     }
 
     func cancel() {
@@ -145,14 +163,24 @@ final class SwitcherWindowController: NSWindowController {
 
     func commitSelection() {
         let selectedWindow = state.selectedWindow
+        let wasLivePreviewing = isLivePreviewing
         dismiss()
-        if let selectedWindow {
+        // In live mode the selected window is already frontmost from the last
+        // preview, so committing only needs to dismiss the panel.
+        if !wasLivePreviewing, let selectedWindow {
             enumerator.activate(selectedWindow)
         }
     }
 
+    private func previewSelection() {
+        guard let selectedWindow = state.selectedWindow else { return }
+        enumerator.activate(selectedWindow)
+        window?.orderFrontRegardless()
+    }
+
     private func dismiss() {
         guard window?.isVisible == true else { return }
+        isLivePreviewing = false
         close()
         state.replaceWindows([])
     }
