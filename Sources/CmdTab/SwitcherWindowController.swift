@@ -32,6 +32,13 @@ final class SwitcherState: ObservableObject {
             selectedIndex = (selectedIndex - 1 + windows.count) % windows.count
         }
     }
+
+    func select(_ index: Int) {
+        guard windows.indices.contains(index) else { return }
+        withoutAnimation {
+            selectedIndex = index
+        }
+    }
 }
 
 @MainActor
@@ -90,7 +97,11 @@ final class SwitcherWindowController: NSWindowController {
 
         super.init(window: window)
 
-        let hostingView = ClearHostingView(rootView: SwitcherView(state: state))
+        let hostingView = ClearHostingView(rootView: SwitcherView(
+            state: state,
+            onHover: { [weak self] index in self?.selectIndex(index) },
+            onCommit: { [weak self] in self?.commitSelection() }
+        ))
         rootView.pin(shadowView, inset: transparentInset)
         shadowView.pin(glassView)
         glassView.pin(hostingView)
@@ -152,6 +163,14 @@ final class SwitcherWindowController: NSWindowController {
             state.cycleBackward()
         }
 
+        if isLivePreviewing {
+            previewSelection()
+        }
+    }
+
+    func selectIndex(_ index: Int) {
+        guard window?.isVisible == true, index != state.selectedIndex else { return }
+        state.select(index)
         if isLivePreviewing {
             previewSelection()
         }
@@ -220,6 +239,8 @@ final class SwitcherWindowController: NSWindowController {
 
 private struct SwitcherView: View {
     @ObservedObject var state: SwitcherState
+    let onHover: (Int) -> Void
+    let onCommit: () -> Void
 
     var body: some View {
         VStack(spacing: 4) {
@@ -230,7 +251,12 @@ private struct SwitcherView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ForEach(Array(state.windows.enumerated()), id: \.element.id) { index, window in
-                    WindowRow(window: window, isSelected: index == state.selectedIndex)
+                    WindowRow(
+                        window: window,
+                        isSelected: index == state.selectedIndex,
+                        onHover: { onHover(index) },
+                        onCommit: onCommit
+                    )
                 }
             }
         }
@@ -244,6 +270,8 @@ private struct SwitcherView: View {
 private struct WindowRow: View {
     let window: WindowInfo
     let isSelected: Bool
+    let onHover: () -> Void
+    let onCommit: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -270,6 +298,10 @@ private struct WindowRow: View {
                 .fill(isSelected ? Color.accentColor : Color.primary.opacity(0.001))
         }
         .contentShape(Rectangle())
+        .onHover { hovering in
+            if hovering { onHover() }
+        }
+        .onTapGesture { onCommit() }
     }
 }
 
