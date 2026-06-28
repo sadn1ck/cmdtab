@@ -63,7 +63,7 @@ dist: build
 # Bump the version (patch|minor|major) and make the release commit. The commit
 # message carries `#release`, which is what tells CI to publish a GitHub
 # Release for the new version on push. Run `git push` afterwards.
-release level:
+release level="patch":
     #!/usr/bin/env bash
     set -euo pipefail
     case "{{level}}" in patch|minor|major) ;; *) echo "usage: just release patch|minor|major" >&2; exit 1 ;; esac
