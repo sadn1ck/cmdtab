@@ -20,7 +20,7 @@ final class WindowEnumerator {
         AXUIElementSetAttributeValue(app, kAXFocusedWindowAttribute as CFString, window.axWindow)
         AXUIElementSetAttributeValue(app, kAXMainWindowAttribute as CFString, window.axWindow)
         AXUIElementPerformAction(window.axWindow, kAXRaiseAction as CFString)
-        NSRunningApplication(processIdentifier: window.processID)?.activate(options: [.activateAllWindows])
+        NSRunningApplication(processIdentifier: window.processID)?.activate(options: [])
     }
 
     // On-screen windows belong to the current space; restricting them to the
