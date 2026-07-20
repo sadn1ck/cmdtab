@@ -46,37 +46,34 @@ final class SwitcherWindowController: NSWindowController {
     private let enumerator = WindowEnumerator()
     private let state = SwitcherState()
     private let settings = AppSettings()
+    private let containerView: NSView
+    private var glassView: NSGlassEffectView
+    private var installedGlassStyle: SwitcherGlassStyle
+    private var glassConstraints: [NSLayoutConstraint] = []
+    private var glassContentConstraints: [NSLayoutConstraint] = []
     private var isLivePreviewing = false
     private var activationObserver: NSObjectProtocol?
     private let panelWidth: CGFloat = 600
-    private let transparentInset: CGFloat = 10
     private let panelRadius: CGFloat = 14
 
     init() {
-        let rootView = TransparentView(frame: NSRect(x: 0, y: 0, width: panelWidth + transparentInset * 2, height: 340))
+        let rootView = TransparentView(frame: NSRect(x: 0, y: 0, width: panelWidth, height: 340))
         rootView.wantsLayer = true
         rootView.layer?.backgroundColor = NSColor.clear.cgColor
 
-        let shadowView = TransparentView()
-        shadowView.translatesAutoresizingMaskIntoConstraints = false
-        shadowView.wantsLayer = true
-        shadowView.layer?.backgroundColor = NSColor.clear.cgColor
-        shadowView.layer?.shadowColor = NSColor.black.cgColor
-        shadowView.layer?.shadowOpacity = 0.24
-        shadowView.layer?.shadowRadius = 22
-        shadowView.layer?.shadowOffset = CGSize(width: 0, height: -8)
+        let containerView = TransparentView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.wantsLayer = true
+        containerView.layer?.backgroundColor = NSColor.clear.cgColor
+        containerView.layer?.cornerRadius = panelRadius
+        containerView.layer?.cornerCurve = .continuous
+        containerView.layer?.masksToBounds = true
 
-        let glassView = NSVisualEffectView()
-        glassView.material = .menu
-        glassView.blendingMode = .behindWindow
-        glassView.state = .active
+        let glassView = NSGlassEffectView()
+        let glassStyle = settings.switcherGlassStyle
+        glassView.style = glassStyle.nsStyle
+        glassView.cornerRadius = 0
         glassView.translatesAutoresizingMaskIntoConstraints = false
-        glassView.wantsLayer = true
-        glassView.layer?.cornerRadius = panelRadius
-        glassView.layer?.cornerCurve = .continuous
-        glassView.layer?.masksToBounds = true
-        glassView.layer?.borderWidth = 0.8
-        glassView.layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.18).cgColor
 
         let window = NSPanel(
             contentRect: rootView.frame,
@@ -94,6 +91,9 @@ final class SwitcherWindowController: NSWindowController {
         window.hidesOnDeactivate = false
         window.isReleasedWhenClosed = false
         window.contentView = rootView
+        self.containerView = containerView
+        self.glassView = glassView
+        self.installedGlassStyle = glassStyle
 
         super.init(window: window)
 
@@ -102,9 +102,9 @@ final class SwitcherWindowController: NSWindowController {
             onHover: { [weak self] index in self?.selectIndex(index) },
             onCommit: { [weak self] in self?.commitSelection() }
         ))
-        rootView.pin(shadowView, inset: transparentInset)
-        shadowView.pin(glassView)
-        glassView.pin(hostingView)
+        rootView.pin(containerView)
+        installGlassView(glassView)
+        installContentView(hostingView, in: glassView)
 
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
@@ -135,6 +135,7 @@ final class SwitcherWindowController: NSWindowController {
     }
 
     func show() {
+        applyGlassStyle(settings.switcherGlassStyle)
         state.replaceWindows(enumerator.visibleWindows())
         resizeForContent()
         centerOnActiveScreen()
@@ -169,7 +170,9 @@ final class SwitcherWindowController: NSWindowController {
     }
 
     func selectIndex(_ index: Int) {
-        guard window?.isVisible == true, index != state.selectedIndex else { return }
+        guard settings.isMouseSelectionEnabled,
+              window?.isVisible == true,
+              index != state.selectedIndex else { return }
         state.select(index)
         if isLivePreviewing {
             previewSelection()
@@ -204,13 +207,63 @@ final class SwitcherWindowController: NSWindowController {
         state.replaceWindows([])
     }
 
+    private func applyGlassStyle(_ style: SwitcherGlassStyle) {
+        guard style != installedGlassStyle else { return }
+
+        let contentView = glassView.contentView
+        glassView.contentView = nil
+        NSLayoutConstraint.deactivate(glassContentConstraints)
+        NSLayoutConstraint.deactivate(glassConstraints)
+        glassView.removeFromSuperview()
+
+        let replacement = makeGlassView(style: style)
+        glassView = replacement
+        installedGlassStyle = style
+        installGlassView(replacement)
+        if let contentView {
+            installContentView(contentView, in: replacement)
+        }
+        replacement.needsDisplay = true
+        window?.displayIfNeeded()
+    }
+
+    private func makeGlassView(style: SwitcherGlassStyle) -> NSGlassEffectView {
+        let view = NSGlassEffectView()
+        view.style = style.nsStyle
+        view.cornerRadius = 0
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }
+
+    private func installGlassView(_ view: NSGlassEffectView) {
+        containerView.addSubview(view)
+        glassConstraints = [
+            view.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            view.topAnchor.constraint(equalTo: containerView.topAnchor),
+            view.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+        ]
+        NSLayoutConstraint.activate(glassConstraints)
+    }
+
+    private func installContentView(_ contentView: NSView, in glassView: NSGlassEffectView) {
+        glassView.contentView = contentView
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        glassContentConstraints = [
+            contentView.leadingAnchor.constraint(equalTo: glassView.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: glassView.trailingAnchor),
+            contentView.topAnchor.constraint(equalTo: glassView.topAnchor),
+            contentView.bottomAnchor.constraint(equalTo: glassView.bottomAnchor)
+        ]
+        NSLayoutConstraint.activate(glassContentConstraints)
+    }
+
     private func resizeForContent() {
         guard let window else { return }
 
         let visibleRows = min(max(state.windows.count, 1), 7)
-        let height = CGFloat(visibleRows * 30 + 16) + transparentInset * 2
-        window.setContentSize(NSSize(width: panelWidth + transparentInset * 2, height: height))
-        updateShadowPath()
+        let height = CGFloat(visibleRows * 30 + 16)
+        window.setContentSize(NSSize(width: panelWidth, height: height))
     }
 
     private func centerOnActiveScreen() {
@@ -220,21 +273,6 @@ final class SwitcherWindowController: NSWindowController {
         window.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.midY - size.height / 2))
     }
 
-    private func updateShadowPath() {
-        guard let rootView = window?.contentView,
-              let shadowView = rootView.subviews.first else {
-            return
-        }
-
-        shadowView.layoutSubtreeIfNeeded()
-        let path = CGPath(
-            roundedRect: shadowView.bounds,
-            cornerWidth: panelRadius,
-            cornerHeight: panelRadius,
-            transform: nil
-        )
-        shadowView.layer?.shadowPath = path
-    }
 }
 
 private struct SwitcherView: View {
@@ -294,8 +332,10 @@ private struct WindowRow: View {
         .frame(height: 28)
         .padding(.horizontal, 8)
         .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSelected ? Color.accentColor : Color.primary.opacity(0.001))
+            if isSelected {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.accentColor)
+            }
         }
         .contentShape(Rectangle())
         .onHover { hovering in

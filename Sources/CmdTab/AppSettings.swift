@@ -2,12 +2,26 @@ import AppKit
 
 struct AppSettings {
     static let liveSwitchDefaultsKey = "liveSwitchEnabled"
+    static let mouseSelectionDefaultsKey = "mouseSelectionEnabled"
+    static let switcherGlassStyleDefaultsKey = "switcherGlassStyle"
+    static let defaultMouseSelectionEnabled = true
+    static let defaultSwitcherGlassStyle = SwitcherGlassStyle.clear
 
     let keyCode: CGKeyCode = 48
     let modifierFlags: CGEventFlags = .maskCommand
 
     var isLiveSwitchEnabled: Bool {
         UserDefaults.standard.bool(forKey: Self.liveSwitchDefaultsKey)
+    }
+
+    var isMouseSelectionEnabled: Bool {
+        UserDefaults.standard.object(forKey: Self.mouseSelectionDefaultsKey) as? Bool
+            ?? Self.defaultMouseSelectionEnabled
+    }
+
+    var switcherGlassStyle: SwitcherGlassStyle {
+        let rawValue = UserDefaults.standard.string(forKey: Self.switcherGlassStyleDefaultsKey)
+        return rawValue.flatMap(SwitcherGlassStyle.init(rawValue:)) ?? Self.defaultSwitcherGlassStyle
     }
 
     var displayString: String {
@@ -21,6 +35,27 @@ struct AppSettings {
         if modifierFlags.contains(.maskShift) { parts.append("⇧") }
         if modifierFlags.contains(.maskCommand) { parts.append("⌘") }
         return parts.joined()
+    }
+}
+
+enum SwitcherGlassStyle: String, CaseIterable, Identifiable {
+    case clear
+    case regular
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .clear: "Clear"
+        case .regular: "Regular"
+        }
+    }
+
+    var nsStyle: NSGlassEffectView.Style {
+        switch self {
+        case .clear: .clear
+        case .regular: .regular
+        }
     }
 }
 

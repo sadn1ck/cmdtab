@@ -30,10 +30,9 @@ enum AppInfo {
 @MainActor
 final class SettingsWindowController: NSWindowController {
     init(settings: AppSettings) {
-        let contentView = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: 780, height: 520))
-        contentView.material = .underWindowBackground
-        contentView.blendingMode = .behindWindow
-        contentView.state = .active
+        let contentView = NSGlassEffectView(frame: NSRect(x: 0, y: 0, width: 780, height: 520))
+        contentView.style = .regular
+        contentView.cornerRadius = 0
 
         let window = NSWindow(
             contentRect: contentView.frame,
@@ -57,7 +56,14 @@ final class SettingsWindowController: NSWindowController {
         let hostingView = NSHostingView(rootView: SettingsView(settings: settings))
         hostingView.wantsLayer = true
         hostingView.layer?.backgroundColor = NSColor.clear.cgColor
-        contentView.pin(hostingView)
+        contentView.contentView = hostingView
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+        ])
     }
 
     @available(*, unavailable)
@@ -83,18 +89,21 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
 private struct SettingsView: View {
     let settings: AppSettings
 
-    @State private var selection: SettingsTab = .config
+    @State private var selection: SettingsTab? = .config
     @State private var accessibilityTrusted = PermissionManager.shared.isAccessibilityTrusted
 
     var body: some View {
-        HStack(spacing: 0) {
-            SidebarView(selection: $selection)
-                .frame(width: 210)
-
-            Divider()
-
-            detail
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        GlassEffectContainer(spacing: 10) {
+            NavigationSplitView {
+                List(SettingsTab.allCases, selection: $selection) { tab in
+                    Label(tab.rawValue, systemImage: tab.icon)
+                        .tag(tab)
+                }
+                .listStyle(.sidebar)
+                .navigationSplitViewColumnWidth(min: 180, ideal: 210)
+            } detail: {
+                detail
+            }
         }
         .background(.clear)
         .onAppear(perform: refreshPermissions)
@@ -102,7 +111,7 @@ private struct SettingsView: View {
 
     @ViewBuilder
     private var detail: some View {
-        switch selection {
+        switch selection ?? .config {
         case .config:
             ConfigPane(
                 shortcut: settings.displayString,
@@ -119,65 +128,28 @@ private struct SettingsView: View {
     }
 }
 
-private struct SidebarView: View {
-    @Binding var selection: SettingsTab
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Spacer().frame(height: 22)
-
-            ForEach(SettingsTab.allCases) { tab in
-                SidebarItem(tab: tab, isSelected: selection == tab) {
-                    selection = tab
-                }
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal, 14)
-        .background(.ultraThinMaterial)
-    }
-}
-
-private struct SidebarItem: View {
-    let tab: SettingsTab
-    let isSelected: Bool
-    let select: () -> Void
-
-    var body: some View {
-        Button(action: select) {
-            HStack(spacing: 10) {
-                Image(systemName: tab.icon)
-                    .font(.system(size: 18, weight: .regular))
-                    .frame(width: 32, height: 32)
-                    .symbolVariant(.none)
-                Text(tab.rawValue)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 12)
-            .frame(height: 40)
-            .foregroundStyle(isSelected ? .white : .primary)
-            .background {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(isSelected ? Color.accentColor : Color.clear)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 private struct ConfigPane: View {
     let shortcut: String
     let accessibilityTrusted: Bool
     let refreshPermissions: () -> Void
 
     @AppStorage(AppSettings.liveSwitchDefaultsKey) private var liveSwitch = false
+    @AppStorage(AppSettings.mouseSelectionDefaultsKey)
+    private var mouseSelection = AppSettings.defaultMouseSelectionEnabled
+    @AppStorage(AppSettings.switcherGlassStyleDefaultsKey)
+    private var switcherGlassStyle = AppSettings.defaultSwitcherGlassStyle.rawValue
 
     var body: some View {
         SettingsPane {
             PaneHeader(icon: "command", title: "Config", subtitle: "Switcher behavior and required permissions.")
+
+            SettingsCard {
+                PickerRow(
+                    icon: "sparkles",
+                    title: "Switcher glass",
+                    selection: $switcherGlassStyle
+                )
+            }
 
             SettingsCard {
                 InfoRow(icon: "keyboard", title: "Shortcut", value: shortcut)
@@ -197,6 +169,13 @@ private struct ConfigPane: View {
                     title: "Live preview switching",
                     subtitle: "Switch to the highlighted window on every Cmd-Tab",
                     isOn: $liveSwitch
+                )
+                Divider()
+                ToggleRow(
+                    icon: "cursorarrow.motionlines",
+                    title: "Mouse selection",
+                    subtitle: "Select a window when the pointer moves over it",
+                    isOn: $mouseSelection
                 )
             }
 
@@ -282,10 +261,35 @@ private struct SettingsCard<Content: View>: View {
             content
         }
         .padding(.vertical, 2)
-        .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.primary.opacity(0.05))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct PickerRow: View {
+    let icon: String
+    let title: String
+    @Binding var selection: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .frame(width: 18)
+                .foregroundStyle(.secondary)
+            Text(title)
+            Spacer()
+            Picker(title, selection: $selection) {
+                ForEach(SwitcherGlassStyle.allCases) { style in
+                    Text(style.label).tag(style.rawValue)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .controlSize(.small)
+            .frame(width: 150)
         }
+        .font(.system(size: 13, weight: .regular, design: .rounded))
+        .padding(.horizontal, 14)
+        .frame(height: 38)
     }
 }
 
@@ -355,6 +359,7 @@ private struct PermissionRow: View {
                 .foregroundStyle(.secondary)
             Button("Open", action: openSettings)
                 .controlSize(.small)
+                .buttonStyle(.glass)
         }
         .font(.system(size: 13, weight: .regular, design: .rounded))
         .padding(.horizontal, 14)

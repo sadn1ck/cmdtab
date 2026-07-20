@@ -3,7 +3,7 @@ set dotenv-load := true
 app_name := "CmdTab"
 bundle_id := "com.sadn1ck.apps.cmdtab"
 configuration := env_var_or_default("CONFIGURATION", "debug")
-macos_deployment_target := "14.0"
+macos_deployment_target := "26.0"
 swift_opt := if configuration == "release" { "-O" } else { "-Onone" }
 
 # Code signing (self-signed, no Apple account needed). Generate once with
