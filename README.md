@@ -17,7 +17,7 @@ Current scope:
 ## Build and run
 
 ```sh
-make run
+just run
 ```
 
 The built app bundle is written to:
@@ -25,6 +25,30 @@ The built app bundle is written to:
 ```text
 .build/debug/CmdTab.app
 ```
+
+## Install the latest release
+
+The installer downloads the latest GitHub Release ZIP, extracts `CmdTab.app`,
+and installs it in `/Applications`:
+
+```sh
+curl --fail --location https://raw.githubusercontent.com/sadn1ck/cmdtab/main/install.sh | bash
+```
+
+Or, if you have `just` installed:
+
+```sh
+just install
+```
+
+Each release also includes `CmdTab.zip.sha256`. The installer downloads that
+sidecar checksum and verifies the ZIP before extracting or replacing the app.
+If CmdTab is running, it shows a macOS dialog asking to quit it; choosing
+Cancel, or failing to quit, stops the installation without replacing the app.
+
+The release archive is published by GitHub Actions when a release commit is
+pushed. Releases are self-signed, so macOS may require opening CmdTab once from
+Finder with Control-click → Open.
 
 ## Permissions
 
@@ -41,10 +65,10 @@ com.sadn1ck.apps.cmdtab
 If permission prompts get stale while iterating, reset them with:
 
 ```sh
-make reset-tcc
+just reset-tcc
 ```
 
-Then run the app again with `make run`.
+Then run the app again with `just run`.
 
 ## Configuration
 

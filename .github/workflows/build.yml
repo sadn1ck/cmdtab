@@ -42,7 +42,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CmdTab
-          path: .build/release/CmdTab.zip
+          path: |
+            .build/release/CmdTab.zip
+            .build/release/CmdTab.zip.sha256
           if-no-files-found: error
 
       - name: Publish release
@@ -51,7 +53,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           v=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Config/Info.plist)
-          gh release create "v$v" .build/release/CmdTab.zip \
+          gh release create "v$v" .build/release/CmdTab.zip .build/release/CmdTab.zip.sha256 \
             --title "CmdTab v$v" \
             --target "$GITHUB_SHA" \
             --generate-notes

@@ -59,7 +59,13 @@ build: cert
 dist: build
     rm -f "{{build_dir}}/{{app_name}}.zip"
     ditto -c -k --keepParent "{{app_dir}}" "{{build_dir}}/{{app_name}}.zip"
+    (cd "{{build_dir}}" && shasum -a 256 "{{app_name}}.zip" > "{{app_name}}.zip.sha256")
     @echo "Packaged {{build_dir}}/{{app_name}}.zip"
+    @echo "Checksum: {{build_dir}}/{{app_name}}.zip.sha256"
+
+# Install the latest published GitHub release into /Applications.
+install:
+    curl --fail --location https://raw.githubusercontent.com/sadn1ck/cmdtab/main/install.sh | bash
 
 # Bump the version (patch|minor|major) and make the release commit. The commit
 # message carries `#release`, which is what tells CI to publish a GitHub
