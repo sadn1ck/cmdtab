@@ -8,6 +8,8 @@
 	<string>CmdTab</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.sadn1ck.apps.cmdtab</string>
+	<key>CFBundleIconFile</key>
+	<string>CmdTab.icns</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

@@ -35,6 +35,7 @@ build: cert
     set -euo pipefail
     mkdir -p "{{macos_dir}}" "{{resources_dir}}"
     cp Config/Info.plist "{{contents_dir}}/Info.plist"
+    cp Resources/CmdTab.icns "{{resources_dir}}/CmdTab.icns"
     /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier {{bundle_id}}" "{{contents_dir}}/Info.plist" >/dev/null
     xcrun swiftc \
         -parse-as-library \
