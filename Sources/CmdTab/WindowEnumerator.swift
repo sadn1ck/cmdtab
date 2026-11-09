@@ -43,7 +43,11 @@ final class WindowEnumerator {
                 (entry[kCGWindowLayer as String] as? Int) == 0,
                 (entry[kCGWindowAlpha as String] as? Double ?? 1) > 0,
                 let boundsDict = entry[kCGWindowBounds as String] as? NSDictionary,
-                let bounds = CGRect(dictionaryRepresentation: boundsDict)
+                let bounds = CGRect(dictionaryRepresentation: boundsDict),
+                // WindowManager can publish off-screen 1×1 placeholders at layer 0.
+                // They must not become the anchor used to select the active display.
+                bounds.width > 80,
+                bounds.height > 40
             else {
                 return nil
             }
